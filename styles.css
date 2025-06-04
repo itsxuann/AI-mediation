@@ -735,4 +735,33 @@ header h1 {
 .section-version-name:focus {
     outline: none;
     border-color: var(--color-primary);
+}
+
+/* 保存按钮样式 */
+#saveButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#saveButton:hover {
+    background-color: #8a7769;
+}
+
+#saveButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#saveButton i {
+    font-size: 16px;
 } 

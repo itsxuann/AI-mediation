@@ -50,6 +50,25 @@ const compareModal = document.getElementById('compareModal');
 const compareVersionsCheckboxes = document.getElementById('compareVersionsCheckboxes');
 const compareContent = document.getElementById('compareContent');
 
+// 在 DOM 元素部分添加
+const saveButton = document.createElement('button');
+saveButton.id = 'saveButton';
+saveButton.className = 'btn primary';
+saveButton.innerHTML = '<i class="fas fa-save"></i> 保存';
+document.querySelector('.header-actions').appendChild(saveButton);
+
+// 添加保存按钮事件监听
+saveButton.addEventListener('click', async () => {
+    try {
+        saveButton.disabled = true;
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+        await saveToServer();
+    } finally {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存';
+    }
+});
+
 // 添加新片段
 function handleAddSection() {
     const currentVersion = getCurrentVersion();
