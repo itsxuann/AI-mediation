@@ -50,6 +50,30 @@ const compareModal = document.getElementById('compareModal');
 const compareVersionsCheckboxes = document.getElementById('compareVersionsCheckboxes');
 const compareContent = document.getElementById('compareContent');
 
+// 添加新片段
+function handleAddSection() {
+    const currentVersion = getCurrentVersion();
+    const newSectionId = Date.now();
+    
+    const newSection = {
+        id: newSectionId,
+        title: `片段 ${currentVersion.sections.length + 1}`,
+        visible: true,
+        versions: [
+            {
+                id: 1,
+                text: '',
+                pauseDuration: 3
+            }
+        ],
+        currentVersionId: 1
+    };
+    
+    currentVersion.sections.push(newSection);
+    renderCurrentVersion();
+    saveToLocalStorage();
+}
+
 // 关闭模态框
 document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -942,49 +966,57 @@ function generateMindfulText(prompt) {
            " " + prompt.slice(0, 10) + "... 在这份亲切温暖的陪伴中，体验内心深处的宁静。";
 }
 
-// 导出脚本
+// 修改导出脚本功能
 function handleExportScript() {
-    // 确保当前脚本已保存
-    saveToLocalStorage();
-    
-    // 创建导出数据
-    const exportData = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        script: currentScript,
-        metadata: {
-            totalSections: currentScript.versions.reduce((sum, v) => sum + v.sections.length, 0),
-            totalVersions: currentScript.versions.length,
-            lastModified: new Date().toISOString()
-        }
-    };
-    
-    // 创建Blob对象
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    
-    // 创建下载链接
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    
-    // 生成文件名：脚本标题_日期时间.json
-    const date = new Date();
-    const dateStr = date.toISOString().replace(/[:.]/g, '-').split('T')[0];
-    const timeStr = date.toTimeString().split(' ')[0].replace(/:/g, '-');
-    const fileName = `${currentScript.title || '冥想脚本'}_${dateStr}_${timeStr}.json`;
-    
-    a.download = fileName;
-    
-    // 触发下载
-    document.body.appendChild(a);
-    a.click();
-    
-    // 清理
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    // 显示导出成功提示
-    showExportSuccessMessage();
+    try {
+        // 确保当前脚本已保存
+        saveToLocalStorage();
+        
+        // 创建导出数据
+        const exportData = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            script: currentScript,
+            metadata: {
+                totalSections: currentScript.versions.reduce((sum, v) => sum + v.sections.length, 0),
+                totalVersions: currentScript.versions.length,
+                lastModified: new Date().toISOString()
+            }
+        };
+        
+        // 创建Blob对象
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        
+        // 创建下载链接
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // 生成文件名：脚本标题_日期时间.json
+        const date = new Date();
+        const dateStr = date.toISOString().split('T')[0];
+        const timeStr = date.toTimeString().split(' ')[0].replace(/:/g, '-');
+        const fileName = `${currentScript.title || '冥想脚本'}_${dateStr}_${timeStr}.json`;
+        
+        a.download = fileName;
+        
+        // 添加到文档并触发点击
+        document.body.appendChild(a);
+        a.click();
+        
+        // 清理
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+        
+        // 显示导出成功提示
+        showExportSuccessMessage();
+    } catch (error) {
+        console.error('导出脚本失败:', error);
+        alert('导出失败，请重试');
+    }
 }
 
 // 显示导出成功提示
