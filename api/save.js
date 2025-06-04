@@ -1,9 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-// 使用环境变量获取数据文件路径，如果没有则使用默认路径
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
-const SCRIPT_FILE = path.join(DATA_DIR, 'script.json');
+import clientPromise from '../lib/mongodb';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -11,13 +6,16 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 确保数据目录存在
-        if (!fs.existsSync(DATA_DIR)) {
-            fs.mkdirSync(DATA_DIR, { recursive: true });
-        }
+        const client = await clientPromise;
+        const db = client.db('meditation');
+        const collection = db.collection('scripts');
 
-        // 写入数据到文件
-        fs.writeFileSync(SCRIPT_FILE, JSON.stringify(req.body, null, 2));
+        // 更新或插入数据
+        await collection.updateOne(
+            { _id: 'main' }, // 使用固定的 _id
+            { $set: { ...req.body, updatedAt: new Date() } },
+            { upsert: true } // 如果文档不存在则创建
+        );
         
         res.status(200).json({ message: '保存成功' });
     } catch (error) {
