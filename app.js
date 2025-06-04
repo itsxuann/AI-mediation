@@ -119,16 +119,37 @@ async function loadFromServer() {
 // 保存到服务器
 async function saveToServer() {
     try {
-        const response = await fetch('/api/save', {
+        // 准备要保存的数据
+        const scriptToSave = {
+            title: currentScript.title,
+            version: currentScript.versions.find(v => v.id === currentScript.currentVersionId)?.name || '默认版本',
+            sections: currentScript.versions.find(v => v.id === currentScript.currentVersionId)?.sections.map(section => ({
+                sectionId: section.id,
+                title: section.title,
+                visible: section.visible,
+                note: section.note || '',
+                currentVersionId: section.currentVersionId,
+                versions: section.versions
+            })) || []
+        };
+
+        const response = await fetch('/api/scripts', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(currentScript)
+            body: JSON.stringify(scriptToSave)
         });
         
         if (!response.ok) {
             throw new Error('保存失败');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            alert('保存成功！');
+        } else {
+            throw new Error(result.message || '保存失败');
         }
     } catch (error) {
         console.error('保存数据失败:', error);
