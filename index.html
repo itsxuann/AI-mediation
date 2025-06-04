@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冥想脚本创作平台</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="fixed-header">
+            <h1>冥想脚本创作平台</h1>
+            <div class="header-actions">
+                <button id="newScriptBtn" class="btn primary">新建脚本</button>
+                <button id="exportScriptBtn" class="btn">导出脚本</button>
+                <label for="importScriptInput" class="btn">导入脚本</label>
+                <input type="file" id="importScriptInput" accept=".json" style="display: none;">
+            </div>
+        </header>
+
+        <div class="script-info fixed-info">
+            <input type="text" id="scriptTitle" placeholder="冥想脚本标题" class="script-title">
+            <div class="version-selector">
+                <label for="versionSelect">版本:</label>
+                <select id="versionSelect">
+                    <option value="1">版本 1</option>
+                </select>
+                <input type="text" id="versionName" class="version-name" placeholder="版本名称">
+                <button id="addVersionBtn" class="btn small">+</button>
+                <button id="deleteVersionBtn" class="btn small danger">−</button>
+            </div>
+        </div>
+
+        <main class="scrollable-content">
+            <div class="script-builder">
+                <div id="scriptSections" class="script-sections">
+                    <!-- 脚本片段将在这里动态添加 -->
+                </div>
+                <button id="addSectionBtn" class="btn">添加新片段</button>
+            </div>
+        </main>
+
+        <div class="fixed-footer">
+            <div class="preview-actions">
+                <button id="previewBtn" class="btn primary">预览完整脚本</button>
+                <button id="compareBtn" class="btn">多版本对比</button>
+            </div>
+        </div>
+
+        <!-- 片段模板 -->
+        <template id="sectionTemplate">
+            <div class="script-section">
+                <div class="section-header">
+                    <div class="section-title-container">
+                        <span class="section-title-display"></span>
+                        <input type="text" class="section-title-edit hidden">
+                        <button class="btn small edit-title">编辑</button>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn small section-versions-btn">版本</button>
+                        <button class="btn small ai-generate">AI生成</button>
+                        <button class="btn small delete-section">删除</button>
+                        <button class="btn small add-section-after">添加片段</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <textarea class="section-text" placeholder="输入片段内容..."></textarea>
+                    <div class="section-controls">
+                        <div class="pause-duration">
+                            <span>停顿时长：</span>
+                            <input type="number" class="pause-seconds" min="0" value="3">
+                            <span>秒</span>
+                        </div>
+                        <div class="section-visibility">
+                            <label class="visibility-toggle">
+                                <input type="checkbox" class="visibility-checkbox" checked>
+                                <span>在最终脚本中显示</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-versions hidden">
+                    <div class="section-versions-header">
+                        <h4>版本管理</h4>
+                        <button class="btn small add-section-version">添加版本</button>
+                    </div>
+                    <div class="section-versions-list"></div>
+                </div>
+            </div>
+        </template>
+
+        <!-- 片段版本模板 -->
+        <template id="sectionVersionTemplate">
+            <div class="section-version-item">
+                <div class="section-version-info">
+                    <div class="section-version-title">
+                        <span class="section-version-number"></span>
+                        <input type="text" class="section-version-name hidden" placeholder="输入版本名称">
+                        <button class="btn small edit-version-name">编辑名称</button>
+                    </div>
+                    <div class="section-version-actions">
+                        <button class="btn small use-section-version">使用</button>
+                        <button class="btn small delete-section-version danger">删除</button>
+                    </div>
+                </div>
+                <div class="section-version-preview"></div>
+            </div>
+        </template>
+
+        <!-- AI生成模态框 -->
+        <div id="aiModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>AI内容生成</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label for="aiPrompt">提示词:</label>
+                        <textarea id="aiPrompt" placeholder="描述你想要的内容，例如：'引导冥想者逐步放松身体各部位'"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>文案风格:</label>
+                        <div class="style-options">
+                            <label class="style-option">
+                                <input type="radio" name="aiStyle" value="calm" checked>
+                                <span>平静舒缓</span>
+                            </label>
+                            <label class="style-option">
+                                <input type="radio" name="aiStyle" value="poetic">
+                                <span>诗意优美</span>
+                            </label>
+                            <label class="style-option">
+                                <input type="radio" name="aiStyle" value="mindful">
+                                <span>亲切</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="ai-actions">
+                        <button id="generateBtn" class="btn primary">生成内容</button>
+                    </div>
+                    <div id="aiResult" class="ai-result hidden">
+                        <h3>生成结果:</h3>
+                        <div id="aiResultText" class="result-text"></div>
+                        <div class="result-actions">
+                            <button id="useAiResultBtn" class="btn">使用此内容</button>
+                            <button id="regenerateBtn" class="btn">重新生成</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预览模态框 -->
+        <div id="previewModal" class="modal">
+            <div class="modal-content preview-modal-content">
+                <div class="modal-header">
+                    <h2>脚本预览</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="preview-version-selector">
+                        <label for="previewVersionSelect">预览版本:</label>
+                        <select id="previewVersionSelect"></select>
+                    </div>
+                    <div id="previewContent" class="preview-content"></div>
+                    <div class="preview-actions">
+                        <button id="generateAudioBtn" class="btn">生成语音</button>
+                        <button id="copyTextBtn" class="btn">复制文本</button>
+                    </div>
+                    <div id="audioPlayer" class="audio-player hidden">
+                        <audio id="meditationAudio" controls></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 多版本对比模态框 -->
+        <div id="compareModal" class="modal">
+            <div class="modal-content compare-modal-content">
+                <div class="modal-header">
+                    <h2>多版本对比</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="compare-version-selector">
+                        <div class="compare-versions-container">
+                            <div id="compareVersionsCheckboxes" class="compare-versions-checkboxes">
+                                <!-- 版本复选框将在这里动态添加 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="compareContent" class="compare-content">
+                        <!-- 多版本内容将在这里动态添加 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
