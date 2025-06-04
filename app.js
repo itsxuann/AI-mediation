@@ -136,7 +136,7 @@ async function saveToServer() {
     }
 }
 
-// 修改初始化应用函数
+// 初始化应用
 async function initApp() {
     await loadFromServer();
     
@@ -159,12 +159,53 @@ async function initApp() {
     copyTextBtn.addEventListener('click', handleCopyText);
 }
 
-// 修改所有保存相关的函数，使用 saveToServer 替代 saveToLocalStorage
+// 更新版本下拉选择框
+function updateVersionSelect() {
+    versionSelect.innerHTML = '';
+    previewVersionSelect.innerHTML = '';
+    
+    currentScript.versions.forEach(version => {
+        const option = document.createElement('option');
+        option.value = version.id;
+        option.textContent = version.name || `版本 ${version.id}`;
+        
+        const previewOption = option.cloneNode(true);
+        
+        versionSelect.appendChild(option);
+        previewVersionSelect.appendChild(previewOption);
+    });
+    
+    versionSelect.value = currentScript.currentVersionId;
+    previewVersionSelect.value = currentScript.currentVersionId;
+    
+    // 更新版本名称输入框
+    const currentVersion = getCurrentVersion();
+    versionName.value = currentVersion.name || `版本 ${currentVersion.id}`;
+}
+
+// 获取当前版本
+function getCurrentVersion() {
+    return currentScript.versions.find(v => v.id === currentScript.currentVersionId);
+}
+
+// 获取指定片段
+function getSection(sectionId) {
+    const currentVersion = getCurrentVersion();
+    return currentVersion.sections.find(s => s.id === sectionId);
+}
+
+// 获取片段当前版本
+function getSectionCurrentVersion(section) {
+    return section.versions.find(v => v.id === section.currentVersionId);
+}
+
+// 处理脚本标题变更
 function handleScriptTitleChange() {
     currentScript.title = scriptTitle.value;
     saveToServer();
 }
 
+// 处理版本名称变更
 function handleVersionNameChange() {
     const currentVersion = getCurrentVersion();
     if (currentVersion) {
@@ -174,6 +215,7 @@ function handleVersionNameChange() {
     }
 }
 
+// 处理版本变更
 function handleVersionChange() {
     currentScript.currentVersionId = parseInt(versionSelect.value);
     const currentVersion = getCurrentVersion();
@@ -182,6 +224,7 @@ function handleVersionChange() {
     saveToServer();
 }
 
+// 处理片段标题变更
 function handleSectionTitleChange(sectionId, title) {
     const section = getSection(sectionId);
     if (section) {
@@ -190,6 +233,7 @@ function handleSectionTitleChange(sectionId, title) {
     }
 }
 
+// 处理片段文本变更
 function handleSectionTextChange(sectionId, text) {
     const section = getSection(sectionId);
     if (section) {
@@ -199,6 +243,7 @@ function handleSectionTextChange(sectionId, text) {
     }
 }
 
+// 处理停顿时长变更
 function handlePauseDurationChange(sectionId, duration) {
     const section = getSection(sectionId);
     if (section) {
@@ -208,6 +253,7 @@ function handlePauseDurationChange(sectionId, duration) {
     }
 }
 
+// 处理片段可见性变更
 function handleSectionVisibilityChange(sectionId, isVisible) {
     const section = getSection(sectionId);
     if (section) {
@@ -349,22 +395,6 @@ function addSectionToDOM(section, number) {
     });
     
     scriptSections.appendChild(sectionClone);
-}
-
-// 获取当前版本
-function getCurrentVersion() {
-    return currentScript.versions.find(v => v.id === currentScript.currentVersionId);
-}
-
-// 获取指定片段
-function getSection(sectionId) {
-    const currentVersion = getCurrentVersion();
-    return currentVersion.sections.find(s => s.id === sectionId);
-}
-
-// 获取片段当前版本
-function getSectionCurrentVersion(section) {
-    return section.versions.find(v => v.id === section.currentVersionId);
 }
 
 // 渲染片段的版本列表
@@ -1088,4 +1118,4 @@ function handleAddSectionAfter(sectionId) {
 }
 
 // 启动应用
-document.addEventListener('DOMContentLoaded', initApp); 
+document.addEventListener('DOMContentLoaded', initApp);
