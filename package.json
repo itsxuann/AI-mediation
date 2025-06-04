@@ -1,4 +1,12 @@
 {
+  "name": "ai-mediation",
+  "version": "1.0.0",
+  "description": "AI 冥想脚本编辑器",
+  "type": "module",
+  "scripts": {
+    "test-db": "node scripts/test-db.js",
+    "insert-test": "node scripts/insert-test-data.js"
+  },
   "dependencies": {
     "mongodb": "^6.17.0"
   }

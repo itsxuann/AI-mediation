@@ -1,4 +1,5 @@
 import clientPromise from '../lib/mongodb';
+import { scriptSchema } from '../lib/schema';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -6,54 +7,38 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 验证请求数据
-        if (!req.body || typeof req.body !== 'object') {
-            throw new Error('无效的请求数据格式');
-        }
-
-        // 确保数据包含必要的字段
-        const requiredFields = ['title', 'versions', 'currentVersionId'];
-        for (const field of requiredFields) {
-            if (!(field in req.body)) {
-                throw new Error(`缺少必要字段: ${field}`);
-            }
-        }
-
         const client = await clientPromise;
         const db = client.db('meditation');
         const collection = db.collection('scripts');
 
-        // 准备要保存的数据
-        const dataToSave = {
-            ...req.body,
-            _id: 'main',
-            updatedAt: new Date()
+        // 获取当前数据
+        const currentData = await collection.findOne({ _id: 'main' });
+        
+        // 准备新数据
+        const newData = {
+            ...scriptSchema, // 使用默认结构
+            ...currentData, // 保留现有数据
+            ...req.body, // 使用请求中的数据
+            updatedAt: new Date() // 更新修改时间
         };
 
-        // 更新或插入数据
+        // 更新数据
         const result = await collection.updateOne(
             { _id: 'main' },
-            { $set: dataToSave },
-            { upsert: true }
+            { $set: newData },
+            { upsert: true } // 如果不存在则创建
         );
 
-        console.log('保存结果:', result);
-        
         res.status(200).json({ 
+            success: true, 
             message: '保存成功',
-            result: {
-                matchedCount: result.matchedCount,
-                modifiedCount: result.modifiedCount,
-                upsertedCount: result.upsertedCount
-            }
+            data: newData
         });
     } catch (error) {
-        console.error('保存数据失败:', error);
-        // 返回更详细的错误信息
+        console.error('保存失败:', error);
         res.status(500).json({ 
-            error: '保存数据失败',
-            details: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: '保存失败',
+            details: error.message
         });
     }
 } 

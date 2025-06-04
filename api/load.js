@@ -1,4 +1,5 @@
 import clientPromise from '../lib/mongodb';
+import { scriptSchema } from '../lib/schema';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -15,46 +16,30 @@ export default async function handler(req, res) {
 
         // 如果数据不存在，返回默认数据
         if (!data) {
-            console.log('未找到现有数据，创建默认数据');
             const defaultData = {
-                _id: 'main',
-                title: '',
-                versions: [
-                    {
-                        id: 1,
-                        name: '版本 1',
-                        sections: []
-                    }
-                ],
-                currentVersionId: 1,
+                ...scriptSchema,
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
 
             // 插入默认数据
-            const result = await collection.insertOne(defaultData);
-            console.log('创建默认数据结果:', result);
+            await collection.insertOne(defaultData);
             return res.status(200).json(defaultData);
         }
 
-        // 验证数据格式
-        const requiredFields = ['title', 'versions', 'currentVersionId'];
-        for (const field of requiredFields) {
-            if (!(field in data)) {
-                console.error('数据格式错误，缺少字段:', field);
-                throw new Error(`数据格式错误，缺少字段: ${field}`);
-            }
-        }
+        // 确保返回的数据包含所有必要字段
+        const completeData = {
+            ...scriptSchema,
+            ...data,
+            updatedAt: new Date()
+        };
 
-        // 返回找到的数据
-        res.status(200).json(data);
+        res.status(200).json(completeData);
     } catch (error) {
         console.error('加载数据失败:', error);
-        // 返回更详细的错误信息
         res.status(500).json({ 
             error: '加载数据失败',
-            details: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            details: error.message
         });
     }
 } 
