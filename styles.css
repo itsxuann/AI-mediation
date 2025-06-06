@@ -737,6 +737,40 @@ header h1 {
     border-color: var(--color-primary);
 }
 
+/* 提示消息样式 */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.toast.success {
+    background-color: #4caf50;
+}
+
+.toast.error {
+    background-color: #f44336;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 /* 保存按钮样式 */
 #saveButton {
     display: inline-flex;
@@ -764,4 +798,19 @@ header h1 {
 
 #saveButton i {
     font-size: 16px;
+}
+
+/* 未保存状态 */
+#saveButton:not(:disabled):not(:hover) {
+    position: relative;
+}
+
+#saveButton:not(:disabled):not(:hover)::after {
+    content: '*';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    color: #ff9800;
+    font-size: 16px;
+    font-weight: bold;
 } 

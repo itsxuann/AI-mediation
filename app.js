@@ -14,6 +14,7 @@ let currentScript = {
 let currentSectionId = null; // 当前正在编辑的片段ID（用于AI生成）
 let selectedVersionsForCompare = []; // 用于多版本对比的已选版本
 let currentSectionForVersionManagement = null; // 当前正在管理版本的片段ID
+let hasUnsavedChanges = false;
 
 // DOM元素
 const scriptTitle = document.getElementById('scriptTitle');
@@ -57,15 +58,19 @@ saveButton.className = 'btn primary';
 saveButton.innerHTML = '<i class="fas fa-save"></i> 保存';
 document.querySelector('.header-actions').appendChild(saveButton);
 
-// 添加保存按钮事件监听
+// 修改保存按钮的事件监听器
 saveButton.addEventListener('click', async () => {
     try {
         saveButton.disabled = true;
         saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
         await saveToServer();
+        hasUnsavedChanges = false;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 已保存';
+        setTimeout(() => {
+            saveButton.innerHTML = '<i class="fas fa-save"></i> 保存';
+        }, 2000);
     } finally {
         saveButton.disabled = false;
-        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存';
     }
 });
 
@@ -90,7 +95,6 @@ function handleAddSection() {
     
     currentVersion.sections.push(newSection);
     renderCurrentVersion();
-    saveToServer();
 }
 
 // 关闭模态框
@@ -135,7 +139,7 @@ async function loadFromServer() {
     }
 }
 
-// 保存到服务器
+// 修改保存到服务器的函数，添加成功提示
 async function saveToServer() {
     try {
         // 准备要保存的数据
@@ -166,13 +170,28 @@ async function saveToServer() {
 
         const result = await response.json();
         if (result.success) {
-            alert('保存成功！');
+            // 显示保存成功提示
+            const toast = document.createElement('div');
+            toast.className = 'toast success';
+            toast.textContent = '保存成功！';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
         } else {
             throw new Error(result.message || '保存失败');
         }
     } catch (error) {
         console.error('保存数据失败:', error);
-        alert('保存数据失败，请重试');
+        // 显示保存失败提示
+        const toast = document.createElement('div');
+        toast.className = 'toast error';
+        toast.textContent = '保存失败，请重试';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+        throw error;
     }
 }
 
@@ -239,19 +258,20 @@ function getSectionCurrentVersion(section) {
     return section.versions.find(v => v.id === section.currentVersionId);
 }
 
-// 处理脚本标题变更
+// 修改所有会改变数据的函数，添加未保存更改标记
 function handleScriptTitleChange() {
     currentScript.title = scriptTitle.value;
-    saveToServer();
+    hasUnsavedChanges = true;
+    saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
 }
 
-// 处理版本名称变更
 function handleVersionNameChange() {
     const currentVersion = getCurrentVersion();
     if (currentVersion) {
         currentVersion.name = versionName.value.trim() || `版本 ${currentVersion.id}`;
         updateVersionSelect();
-        saveToServer();
+        hasUnsavedChanges = true;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
     }
 }
 
@@ -261,44 +281,47 @@ function handleVersionChange() {
     const currentVersion = getCurrentVersion();
     versionName.value = currentVersion.name || `版本 ${currentVersion.id}`;
     renderCurrentVersion();
-    saveToServer();
 }
 
-// 处理片段标题变更
+// 修改所有会改变数据的函数，添加未保存更改标记
 function handleSectionTitleChange(sectionId, title) {
     const section = getSection(sectionId);
     if (section) {
         section.title = title;
-        saveToServer();
+        hasUnsavedChanges = true;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
     }
 }
 
-// 处理片段文本变更
+// 修改所有会改变数据的函数，添加未保存更改标记
 function handleSectionTextChange(sectionId, text) {
     const section = getSection(sectionId);
     if (section) {
         const currentSectionVersion = getSectionCurrentVersion(section);
         currentSectionVersion.text = text;
-        saveToServer();
+        hasUnsavedChanges = true;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
     }
 }
 
-// 处理停顿时长变更
+// 修改所有会改变数据的函数，添加未保存更改标记
 function handlePauseDurationChange(sectionId, duration) {
     const section = getSection(sectionId);
     if (section) {
         const currentSectionVersion = getSectionCurrentVersion(section);
         currentSectionVersion.pauseDuration = parseInt(duration) || 0;
-        saveToServer();
+        hasUnsavedChanges = true;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
     }
 }
 
-// 处理片段可见性变更
+// 修改所有会改变数据的函数，添加未保存更改标记
 function handleSectionVisibilityChange(sectionId, isVisible) {
     const section = getSection(sectionId);
     if (section) {
         section.visible = isVisible;
-        saveToServer();
+        hasUnsavedChanges = true;
+        saveButton.innerHTML = '<i class="fas fa-save"></i> 保存*';
     }
 }
 
@@ -471,7 +494,6 @@ function renderSectionVersions(sectionId, sectionVersionsList) {
                 versionNumber.classList.remove('hidden');
                 versionName.classList.add('hidden');
                 editNameBtn.textContent = '编辑名称';
-                saveToServer();
             }
         });
         
@@ -546,8 +568,6 @@ function handleAddSectionVersion(sectionId) {
         const sectionVersionsList = sectionElement.querySelector('.section-versions-list');
         renderSectionVersions(sectionId, sectionVersionsList);
     }
-    
-    saveToServer();
 }
 
 // 使用指定版本
@@ -570,8 +590,6 @@ function handleUseSectionVersion(sectionId, versionId) {
         const sectionVersionsList = sectionElement.querySelector('.section-versions-list');
         renderSectionVersions(sectionId, sectionVersionsList);
     }
-    
-    saveToServer();
 }
 
 // 删除片段版本
@@ -609,8 +627,6 @@ function handleDeleteSectionVersion(sectionId, versionId) {
         const sectionVersionsList = sectionElement.querySelector('.section-versions-list');
         renderSectionVersions(sectionId, sectionVersionsList);
     }
-    
-    saveToServer();
 }
 
 // 添加新版本
@@ -635,7 +651,6 @@ function handleAddVersion() {
     
     updateVersionSelect();
     renderCurrentVersion();
-    saveToServer();
 }
 
 // 删除当前版本
@@ -659,7 +674,6 @@ function handleDeleteVersion() {
     
     updateVersionSelect();
     renderCurrentVersion();
-    saveToServer();
 }
 
 // 删除片段
@@ -670,7 +684,6 @@ function handleDeleteSection(sectionId) {
     if (sectionIndex !== -1) {
         currentVersion.sections.splice(sectionIndex, 1);
         renderCurrentVersion();
-        saveToServer();
     }
 }
 
@@ -741,7 +754,6 @@ function handleUseAiResult() {
                 sectionElement.querySelector('.section-text').value = generatedText;
             }
             
-            saveToServer();
             aiModal.style.display = 'none';
         }
     }
@@ -995,9 +1007,6 @@ function generateMindfulText(prompt) {
 // 修改导出脚本功能
 function handleExportScript() {
     try {
-        // 确保当前脚本已保存
-        saveToServer();
-        
         // 创建导出数据
         const exportData = {
             version: '1.0',
@@ -1107,9 +1116,6 @@ function handleImportScript(event) {
             updateVersionSelect();
             renderCurrentVersion();
             
-            // 保存到本地存储
-            saveToServer();
-            
             // 显示导入成功提示
             alert('脚本导入成功！\n\n导入的脚本包含：\n' +
                   `- ${importData.metadata?.totalSections || '未知'} 个片段\n` +
@@ -1153,9 +1159,17 @@ function handleAddSectionAfter(sectionId) {
         
         // 重新渲染所有片段
         renderCurrentVersion();
-        saveToServer();
     }
 }
 
+// 添加页面关闭前的提示
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
 // 启动应用
 document.addEventListener('DOMContentLoaded', initApp);
+
